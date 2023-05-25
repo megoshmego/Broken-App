@@ -1,16 +1,22 @@
 const express = require('express');
-let axios = require('axios');
-var app = express();
+const axios = require('axios');
+const app = express();
 
-app.post('/', function(req, res, next) {
+app.use(express.json()); // Middleware to parse JSON requests
+
+app.post('/', async (req, res, next) => {
   try {
-    let results = req.body.developers.map(async d => {
-      return await axios.get(`https://api.github.com/users/${d}`);
-    });
-    let out = results.map(r => ({ name: r.data.name, bio: r.data.bio }));
+    const results = await Promise.all(
+      req.body.developers.map(async d => {
+        const response = await axios.get(`https://api.github.com/users/${d}`);
+        return response.data;
+      })
+    );
 
-    return res.send(JSON.stringify(out));
-  } catch {
+    const out = results.map(r => ({ name: r.name, bio: r.bio }));
+
+    res.json(out);
+  } catch (err) {
     next(err);
   }
 });
